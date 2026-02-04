@@ -1,1 +1,1 @@
---cpu --ctx-size 2048 --threads 4 --api --public-api --share
+--cpu --gpu-layers 0 --ctx-size 2048 --threads 4 --api --public-api --share
