@@ -1,3 +1,9 @@
-# Add persistent flags here to use every time you launch the web UI.
-# Example:
-# --listen --api
+# Persistent flags for CPU GGUF model
+# This configuration launches the web UI with Mistral-7B-Instruct on CPU with API enabled
+
+--model TheBloke/Mistral-7B-Instruct-v0.2-GGUF
+--threads 8
+--no-half
+--llama-cpu-iters 2
+--model-type llama
+--api
