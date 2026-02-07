@@ -100,6 +100,7 @@ if not shared.args.old_colors:
         table_even_background_fill_dark='var(--darker-gray, #1C1C1D)',
         table_odd_background_fill_dark='var(--selected-item-color-dark, #282930)',
         code_background_fill_dark='var(--darker-gray, #1C1C1D)',
+    )
 
         # Shadows and Radius
         checkbox_label_shadow='none',
