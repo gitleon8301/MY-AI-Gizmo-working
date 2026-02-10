@@ -63,30 +63,52 @@ def get_single(value_type, file):
     return value
 
 
-def load_metadata(fname):
-    metadata = {}
-    with open(fname, 'rb') as file:
-        GGUF_MAGIC = struct.unpack("<I", file.read(4))[0]
-        GGUF_VERSION = struct.unpack("<I", file.read(4))[0]
-        ti_data_count = struct.unpack("<Q", file.read(8))[0]
-        kv_data_count = struct.unpack("<Q", file.read(8))[0]
-
-        if GGUF_VERSION == 1:
-            raise Exception('You are using an outdated GGUF, please download a new one.')
-
-        for i in range(kv_data_count):
-            key_length = struct.unpack("<Q", file.read(8))[0]
-            key = file.read(key_length)
-
-            value_type = GGUFValueType(struct.unpack("<I", file.read(4))[0])
-            if value_type == GGUFValueType.ARRAY:
-                ltype = GGUFValueType(struct.unpack("<I", file.read(4))[0])
-                length = struct.unpack("<Q", file.read(8))[0]
-
-                arr = [get_single(ltype, file) for _ in range(length)]
-                metadata[key.decode()] = arr
-            else:
-                value = get_single(value_type, file)
-                metadata[key.decode()] = value
-
+def load_metadata(model_file):
+    """Load GGUF metadata with file validation."""
+    from pathlib import Path
+    
+    # CRITICAL: Validate file before reading
+    model_file = Path(model_file)
+    
+    # Check file exists
+    if not model_file.exists():
+        logger.warning(f"Model file not found: {model_file}")
+        return None
+    
+    # Check file size (minimum 1KB for valid GGUF)
+    file_size = model_file.stat().st_size
+    MIN_VALID_SIZE = 1024  # 1KB minimum
+    
+    if file_size < MIN_VALID_SIZE:
+        logger.warning(f"Model file too small ({file_size} bytes): {model_file.name}")
+        logger.warning(f"Expected minimum: {MIN_VALID_SIZE} bytes")
+        
+        # Auto-delete corrupt files
+        try:
+            model_file.unlink()
+            logger.info(f"Deleted corrupt file: {model_file.name}")
+        except Exception as e:
+            logger.error(f"Could not delete corrupt file: {e}")
+        
+        return None
+    
+    # Now safe to read
+    try:
+        with open(model_file, 'rb') as file:
+            # Read magic number
+            magic_bytes = file.read(4)
+            if len(magic_bytes) < 4:
+                logger.error(f"Could not read GGUF header: {model_file.name}")
+                return None
+            
+            GGUF_MAGIC = struct.unpack("<I", magic_bytes)[0]
+            
+            # Verify GGUF magic number (0x46554747 = "GGUF")
+            EXPECTED_MAGIC = 0x46554747
+            if GGUF_MAGIC != EXPECTED_MAGIC:
+                logger.error(f"Invalid GGUF magic number in {model_file.name}")
+                logger.error(f"Expected: 0x{EXPECTED_MAGIC:08X}, Got: 0x{GGUF_MAGIC:08X}")
+                return None
+            
+            
     return metadata
